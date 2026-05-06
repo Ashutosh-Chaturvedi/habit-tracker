@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import date
 
 from database import get_db
@@ -21,7 +22,20 @@ def create_habit(user_id: int, habit: HabitCreate, db: Session = Depends(get_db)
         created_at=date.today()
     )
     
-    db.add(new_habit)
-    db.commit()
-    db.refresh(new_habit)
-    return new_habit
+    try:
+        db.add(new_habit)
+        db.commit()
+        db.refresh(new_habit)
+        return new_habit
+    except IntegrityError:
+        db.rollback()  
+        raise HTTPException(status_code=400, detail="Habit already exists")
+
+@router.get("/{user_id}", response_model=list[HabitResponse])
+def get_habits(user_id: int, db: Session = Depends(get_db)):
+    existing_user = db.query(Users).filter(Users.id == user_id).first()
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    habits = db.query(Habits).filter(Habits.user_id == user_id).all()
+    return habits

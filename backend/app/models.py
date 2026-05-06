@@ -15,7 +15,7 @@ class Habits(Base):
     __tablename__ = "habits"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
     color = Column(String, nullable=False)
     created_at = Column(Date, nullable=False)
     

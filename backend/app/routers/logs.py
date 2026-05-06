@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import date
 
 from database import get_db
@@ -37,10 +38,14 @@ def create_log(user_id: int, habit_id: int, log: ActivityLogCreate, db: Session 
         count=log.count
     )
     
-    db.add(new_log)
-    db.commit()
-    db.refresh(new_log)
-    return new_log
+    try:
+        db.add(new_log)
+        db.commit()
+        db.refresh(new_log)
+        return new_log
+    except IntegrityError:
+        db.rollback() 
+        raise HTTPException(status_code=400, detail="Habit already exists")
 
 
 @router.get("/{habit_id}/heatmap")
