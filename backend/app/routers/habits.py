@@ -1,0 +1,27 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from datetime import date
+
+from database import get_db
+from models import Habits, Users
+from schemas import HabitCreate, HabitResponse
+
+router = APIRouter(prefix="/habits", tags=["Habits"])
+
+@router.post("/{user_id}", response_model=HabitResponse)
+def create_habit(user_id: int, habit: HabitCreate, db: Session = Depends(get_db)):
+    existing = db.query(Users).filter(Users.id == user_id).first()
+    if not existing:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    new_habit = Habits(
+        user_id=user_id,
+        name=habit.name,
+        color=habit.color,
+        created_at=date.today()
+    )
+    
+    db.add(new_habit)
+    db.commit()
+    db.refresh(new_habit)
+    return new_habit
