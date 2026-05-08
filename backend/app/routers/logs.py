@@ -26,7 +26,7 @@ def create_log(user_id: int, habit_id: int, log: ActivityLogCreate, db: Session 
         ActivityLogs.date == log.date
     ).first()
     if existing_log:
-        existing_log.count += log.count
+        existing_log.count += log.count     # type: ignore
         db.commit()
         db.refresh(existing_log)
         return existing_log
