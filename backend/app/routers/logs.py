@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import date
 
-from database import get_db
-from models import Habits, Users, ActivityLogs
-from schemas import ActivityLogCreate, ActivityLogResponse
+from app.database import get_db
+from app.models import Habits, Users, ActivityLogs
+from app.schemas import ActivityLogCreate, ActivityLogResponse
 
 router = APIRouter(prefix="/logs", tags=["ActivityLogs"])
 

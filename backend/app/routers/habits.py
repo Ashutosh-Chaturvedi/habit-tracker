@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import date
 
-from database import get_db
-from models import Habits, Users
-from schemas import HabitCreate, HabitResponse
+from app.database import get_db
+from app.models import Habits, Users
+from app.schemas import HabitCreate, HabitResponse
 
 router = APIRouter(prefix="/habits", tags=["Habits"])
 

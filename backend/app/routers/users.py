@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import date
 
-from database import get_db
-from models import Users
-from schemas import UserCreate, UserResponse
+from app.database import get_db
+from app.models import Users
+from app.schemas import UserCreate, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

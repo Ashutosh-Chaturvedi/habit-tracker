@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, habits, logs
+from app.routers import users, habits, logs
 
 app = FastAPI()
 
