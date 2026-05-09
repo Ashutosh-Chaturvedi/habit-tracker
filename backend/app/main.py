@@ -6,7 +6,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # your React dev server
+    allow_origins=[
+        "http://localhost:5173",                          # local development
+        "https://habit-tracker-frontend-fina.onrender.com"  # production frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
