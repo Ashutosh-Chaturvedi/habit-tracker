@@ -1,7 +1,7 @@
 import axios from "axios"
 
 const API = axios.create({
-    baseURL: "https://habit-tracker-b7iv.onrender.com"
+    baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000"
 })
 
 // Users
@@ -21,3 +21,6 @@ export const getHeatmap = (habitId, year) =>
 
 export const getHabits = (userId) =>        // ← add this
     API.get(`/habits/${userId}`)
+
+export const deleteHabit = (habitId) => 
+    API.delete(`/habits/${habitId}`)

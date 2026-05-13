@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { createUser, createHabit, getHabits, getHeatmap, logActivity } from "../api"
+import { createUser, createHabit, getHabits, getHeatmap, logActivity, deleteHabit } from "../api"
 // import { useNavigate } from "react-router-dom"
 import HeatmapCalendar from "../components/HeatmapCalendar"
 
@@ -40,6 +40,17 @@ function Home() {
         } catch (err) {
             setMessage(err.response?.data?.detail || "Error fetching habits")
         }
+    }
+
+    const handleDeleteHabit = async (habitId) => {
+        try {
+            await deleteHabit(habitId)
+            setHabits(prev => prev.filter(h => h.id !== habitId))
+            setMessage("Habit deleted!")
+        } catch (err) {
+            setMessage(err.response?.data?.detail || "Error deleting habit")
+        }
+
     }
 
     const handleCreateHabit = async () => {
@@ -191,6 +202,15 @@ function Home() {
                                     <span>{habit.name}</span>
                                 </div>
                                 <span className="text-gray-400">{isExpanded ? "▲" : "▼"}</span>
+                                <button
+                                    className="text-red-400 hover:text-red-300 text-sm px-2"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteHabit(habit.id)
+                                    }}
+                                >
+                                    Delete
+                                </button>
                             </div>
 
                             {/* Expandable section */}

@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from datetime import date
 
 from app.database import get_db
-from app.models import Habits, Users
+from app.models import Habits, Users, ActivityLogs
 from app.schemas import HabitCreate, HabitResponse
 
 router = APIRouter(prefix="/habits", tags=["Habits"])
@@ -39,3 +39,16 @@ def get_habits(user_id: int, db: Session = Depends(get_db)):
     
     habits = db.query(Habits).filter(Habits.user_id == user_id).all()
     return habits
+
+@router.delete("/{habit_id}")
+def delete_habit(habit_id: int, db: Session = Depends(get_db)):
+    habit = db.query(Habits).filter(Habits.id == habit_id).first()
+    if not habit: 
+        raise HTTPException(status_code=404, detail="Habit not found")
+    
+    db.query(ActivityLogs).filter(ActivityLogs.habit_id == habit_id).delete()
+    
+    db.delete(habit)
+    db.commit()
+    return {"message": "Habit deleted successfully"}
+    
