@@ -15,12 +15,14 @@ class Habits(Base):
     __tablename__ = "habits"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    name = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False)
     color = Column(String, nullable=False)
     created_at = Column(Date, nullable=False)
     
     owner = relationship("Users", back_populates="habits")
     logs = relationship("ActivityLogs", back_populates="habit", cascade="all, delete-orphan")
+    
+    __table_args__ = (UniqueConstraint("user_id", "name"),)
     
 class ActivityLogs(Base):
     __tablename__ = "activity_logs"

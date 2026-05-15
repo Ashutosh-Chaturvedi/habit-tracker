@@ -24,3 +24,6 @@ export const getHabits = (userId) =>        // ← add this
 
 export const deleteHabit = (habitId) => 
     API.delete(`/habits/${habitId}`)
+
+export const getUser = (username) =>
+    API.get(`/users/${username}`)

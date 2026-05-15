@@ -30,4 +30,9 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.rollback() 
         raise HTTPException(status_code=400, detail="Habit already exists")
 
-    
+@router.get("/{username}", response_model=UserResponse)
+def get_user(username: str, db: Session = Depends(get_db)):
+    user = db.query(Users).filter(Users.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

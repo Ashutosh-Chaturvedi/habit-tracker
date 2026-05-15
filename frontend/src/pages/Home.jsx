@@ -1,238 +1,208 @@
 import { useState } from "react"
-import { createUser, createHabit, getHabits, getHeatmap, logActivity, deleteHabit } from "../api"
-// import { useNavigate } from "react-router-dom"
-import HeatmapCalendar from "../components/HeatmapCalendar"
+import { createUser, createHabit, getHabits, getUser } from "../api"
+import Navbar from "../components/Navbar"
+import Modal from "../components/Modal"
+import HabitCard from "../components/HabitCard"
 
 function Home() {
-
-    // const navigate = useNavigate()
-
     const [userId, setUserId] = useState("")
+    const [username, setUsername] = useState("")
+    const [habits, setHabits] = useState([])
     const [habitName, setHabitName] = useState("")
     const [habitColor, setHabitColor] = useState("#42a5f5")
-    const [habits, setHabits] = useState([])
-    const [expandedHabitId, setExpandedHabitId] = useState(null)
-    const [heatmapData, setHeatmapData] = useState({})
-
-    const getTodayStr = () => {
-        const today = new Date()
-        const y = today.getFullYear()
-        const m = String(today.getMonth() + 1).padStart(2, "0")
-        const d = String(today.getDate()).padStart(2, "0")
-        return `${y}-${m}-${d}`
-    }
-
-    const handleLogActivity = async (habitId) => {
-        try {
-            await logActivity(userId, habitId, { date: getTodayStr(), count: 1 })
-            const res = await getHeatmap(habitId, 2026)
-            setHeatmapData(prev => ({ ...prev, [habitId]: res.data }))
-            setMessage("Activity logged!")
-        } catch (err) {
-            setMessage(err.response?.data?.detail || "Error logging activity")
-        }
-    }
-
-    const handleFetchHabits = async () => {
-        try {
-            const res = await getHabits(userId)
-            setHabits(res.data)
-        } catch (err) {
-            setMessage(err.response?.data?.detail || "Error fetching habits")
-        }
-    }
-
-    const handleDeleteHabit = async (habitId) => {
-        try {
-            await deleteHabit(habitId)
-            setHabits(prev => prev.filter(h => h.id !== habitId))
-            setMessage("Habit deleted!")
-        } catch (err) {
-            setMessage(err.response?.data?.detail || "Error deleting habit")
-        }
-
-    }
-
-    const handleCreateHabit = async () => {
-        console.log("userId:", userId)
-        console.log("habitName:", habitName)
-        console.log("habitColor:", habitColor)
-        try {
-            const res = await createHabit(userId, { name: habitName, color: habitColor })
-            setMessage(`Habit created: ${res.data.name}`)
-            handleFetchHabits()
-        } catch (err) {
-            console.log("Full error:", err)
-            setMessage(err.response?.data?.detail || "Error creating habit")
-        }
-    }
-
-    const calculateStreak = (data) => {
-        if (data.length === 0) return 0
-        
-        const dataMap = {}
-        data.forEach(entry => { dataMap[entry.date] = entry.count })
-        
-        let streak = 0
-        const today = new Date()
-        
-        // Build today's date string without timezone issues
-        const y = today.getFullYear()
-        const m = String(today.getMonth() + 1).padStart(2, "0")
-        const d = String(today.getDate()).padStart(2, "0")
-        
-        let current = new Date(`${y}-${m}-${d}`)  // midnight local time, no timezone shift
-        
-        while (true) {
-            const dateStr = current.toISOString().split("T")[0]
-            if (dataMap[dateStr]) {
-                streak++
-                current.setDate(current.getDate() - 1)
-            } else {
-                break
-            }
-        }
-        return streak
-    }
-
-    const handleExpandHabit = async (habitId) => {
-        if (expandedHabitId === habitId) {
-            setExpandedHabitId(null)  // collapse if already open
-            return
-        }
-        setExpandedHabitId(habitId)
-        if (!heatmapData[habitId]) {  // only fetch if not already fetched
-            try {
-                const res = await getHeatmap(habitId, 2026)
-                console.log("Fetched heatmap:", res.data)
-                setHeatmapData(prev => ({ ...prev, [habitId]: res.data }))
-            } catch (err) {
-                console.log("Error fetching heatmap:", err)
-            }
-        }
-    }
-
-    const [username, setUsername] = useState("")
+    const [showUserModal, setShowUserModal] = useState(false)
+    const [showHabitModal, setShowHabitModal] = useState(false)
     const [message, setMessage] = useState("")
+    const [currentUsername, setCurrentUsername] = useState("")
+    const [modalMessage, setModalMessage] = useState("")
 
     const handleCreateUser = async () => {
         try {
             const res = await createUser(username)
-            setMessage(`User created with ID: ${res.data.id}`)
+            setUserId(String(res.data.id))
+            setCurrentUsername(res.data.username)
+            setShowUserModal(false)
+            setUsername("")
+            setModalMessage("")
+            const habitsRes = await getHabits(String(res.data.id))
+            setHabits(habitsRes.data)
         } catch (err) {
-            setMessage(err.response?.data?.detail || "Error occurred")
+            setModalMessage(err.response?.data?.detail || "Error creating user")
         }
     }
 
+    const handleFindUser = async () => {
+        try {
+            const res = await getUser(username)
+            setUserId(String(res.data.id))
+            setCurrentUsername(res.data.username)
+            setShowUserModal(false)
+            setUsername("")
+            setModalMessage("")
+            const habitsRes = await getHabits(String(res.data.id))
+            setHabits(habitsRes.data)
+        } catch (err) {
+            setModalMessage("User not found — try creating an account!")
+        }
+    }
+
+    const handleLogout = () => {
+        setUserId("")
+        setCurrentUsername("")
+        setHabits([])
+        setMessage("")
+    }
+
+    const handleCreateHabit = async () => {
+        try {
+            await createHabit(userId, { name: habitName, color: habitColor })
+            const res = await getHabits(userId)
+            setHabits(res.data)
+            setShowHabitModal(false)
+            setHabitName("")
+            setHabitColor("#42a5f5")
+        } catch (err) {
+            setMessage(err.response?.data?.detail || "Error creating habit")
+        }
+    }
+
+    const handleLoadHabits = async () => {
+        try {
+            const res = await getHabits(userId)
+            setHabits(res.data)
+        } catch (err) {
+            setMessage(err.response?.data?.detail || "Error loading habits")
+        }
+    }
+
+    const handleDeleteHabit = (habitId) => {
+        setHabits(prev => prev.filter(h => h.id !== habitId))
+    }
+
     return (
-        <div className="min-h-screen bg-gray-950 text-white p-8">
-            <h1 className="text-3xl font-bold mb-8">Habit Tracker</h1>
+        <div className="min-h-screen bg-gray-950 text-white">
+            <Navbar
+                onNewHabit={() => setShowHabitModal(true)}
+                onLogout={handleLogout}
+                isLoggedIn={!!userId}
+            />
 
-            <div className="mb-4">
-                <input
-                    className="bg-gray-800 text-white px-4 py-2 rounded mr-2"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                />
-                <button
-                    className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
-                    onClick={handleCreateUser}
-                >
-                    Create User
-                </button>
-            </div>
+            <div className="max-w-3xl mx-auto px-6 py-10">
 
-            {message && <p className="text-green-400">{message}</p>}
+                {/* Welcome / User section */}
+                {!userId ? (
+                    <div className="text-center py-20">
+                        <h1 className="text-3xl font-semibold mb-3">Welcome to Habit Tracker</h1>
+                        <p className="text-gray-500 mb-8">Track your daily habits and visualize your consistency.</p>
+                        <button
+                            onClick={() => setShowUserModal(true)}
+                            className="bg-white text-gray-950 font-medium px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            Get Started
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        {/* User bar */}
+                        <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <p className="text-gray-500 text-sm">Logged in as</p>
+                            <p className="text-white font-medium">
+                                {currentUsername} <span className="text-gray-600 text-sm">#{userId}</span>
+                            </p>
+                        </div>
+                    </div>
 
-            <div className="mb-4 mt-8">
-                <h2 className="text-xl font-semibold mb-4">Create Habit</h2>
-                <input
-                    className="bg-gray-800 text-white px-4 py-2 rounded mr-2"
-                    placeholder="User ID"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
-                />
-                <input
-                    className="bg-gray-800 text-white px-4 py-2 rounded mr-2"
-                    placeholder="Habit name"
-                    value={habitName}
-                    onChange={(e) => setHabitName(e.target.value)}
-                />
-                <input
-                    type="color"
-                    value={habitColor}
-                    onChange={(e) => setHabitColor(e.target.value)}
-                    className="mr-2 cursor-pointer"
-                />
-                <button
-                    className="bg-green-600 px-4 py-2 rounded hover:bg-green-700"
-                    onClick={handleCreateHabit}
-                >
-                    Create Habit
-                </button>
-            </div>
+                        {/* Message */}
+                        {message && (
+                            <p className="text-green-400 text-sm mb-4">{message}</p>
+                        )}
 
-            <div className="mt-8">
-                <h2 className="text-xl font-semibold mb-4">Your Habits</h2>
-                <button
-                    className="bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 mb-4"
-                    onClick={handleFetchHabits}
-                >
-                    Load Habits
-                </button>
-                {habits.map(habit => {
-                    const isExpanded = expandedHabitId === habit.id
-                    const data = heatmapData[habit.id] || []
-                    const total = data.reduce((sum, e) => sum + e.count, 0)
-                    const streak = calculateStreak(data)
-
-                    return (
-                        <div key={habit.id} className="bg-gray-800 rounded mb-2">
-                            {/* Header row */}
-                            <div
-                                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-700 rounded"
-                                onClick={() => handleExpandHabit(habit.id)}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className="w-4 h-4 rounded-full"
-                                        style={{ backgroundColor: habit.color }}
-                                    />
-                                    <span>{habit.name}</span>
-                                </div>
-                                <span className="text-gray-400">{isExpanded ? "▲" : "▼"}</span>
+                        {/* Habits list */}
+                        {habits.length === 0 ? (
+                            <div className="text-center py-16 border border-dashed border-gray-800 rounded-xl">
+                                <p className="text-gray-600 mb-4">No habits yet</p>
                                 <button
-                                    className="text-red-400 hover:text-red-300 text-sm px-2"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleDeleteHabit(habit.id)
-                                    }}
+                                    onClick={() => setShowHabitModal(true)}
+                                    className="text-sm text-white border border-gray-700 px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors"
                                 >
-                                    Delete
+                                    + Create your first habit
                                 </button>
                             </div>
-
-                            {/* Expandable section */}
-                            {isExpanded && (
-                                <div className="px-4 pb-4">
-                                    <HeatmapCalendar data={data} color={habit.color} year={2026} />
-                                    <div className="flex gap-8 mt-4 text-sm text-gray-400">
-                                        <span>Total: <span className="text-white font-bold">{total}</span></span>
-                                        <span>Current Streak: <span className="text-white font-bold">{streak} days</span></span>
-                                        <button
-                                            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 mt-4 text-sm"
-                                            onClick={() => handleLogActivity(habit.id)}
-                                        >
-                                            Log Today
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )
-                })}
+                        ) : (
+                            habits.map(habit => (
+                                <HabitCard
+                                    key={habit.id}
+                                    habit={habit}
+                                    userId={userId}
+                                    onDelete={handleDeleteHabit}
+                                />
+                            ))
+                        )}
+                    </>
+                )}
             </div>
+
+            <Modal
+                isOpen={showUserModal}
+                onClose={() => { setShowUserModal(false); setModalMessage("") }}
+                title="Welcome"
+            >
+                <div className="flex flex-col gap-4">
+                    <input
+                        className="bg-gray-950 border border-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-gray-500"
+                        placeholder="Enter your username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                    />
+                    {modalMessage && (
+                        <p className="text-red-400 text-sm">{modalMessage}</p>
+                    )}
+                    <button
+                        onClick={handleCreateUser}
+                        className="bg-white text-gray-950 font-medium px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        Create Account
+                    </button>
+                    <button
+                        onClick={handleFindUser}
+                        className="border border-gray-700 text-white font-medium px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors"
+                    >
+                        Find my account
+                    </button>
+                </div>
+            </Modal>
+
+            {/* Create Habit Modal */}
+            <Modal
+                isOpen={showHabitModal}
+                onClose={() => setShowHabitModal(false)}
+                title="New Habit"
+            >
+                <div className="flex flex-col gap-4">
+                    <input
+                        className="bg-gray-950 border border-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-gray-500"
+                        placeholder="Habit name"
+                        value={habitName}
+                        onChange={(e) => setHabitName(e.target.value)}
+                    />
+                    <div className="flex items-center gap-3">
+                        <label className="text-gray-400 text-sm">Color</label>
+                        <input
+                            type="color"
+                            value={habitColor}
+                            onChange={(e) => setHabitColor(e.target.value)}
+                            className="cursor-pointer rounded"
+                        />
+                    </div>
+                    <button
+                        onClick={handleCreateHabit}
+                        className="bg-white text-gray-950 font-medium px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        Create Habit
+                    </button>
+                </div>
+            </Modal>
         </div>
     )
 }
